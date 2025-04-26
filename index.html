@@ -1,27 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Embed Game</title>
-  <style>
-    body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #333;
-    }
-
-    iframe {
-      width: 90%;
-      height: 90%;
-      border: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toss the Turtle</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 2px solid black;
+            background-color: #87ceeb;
+        }
+        #info {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+        #instructions {
+            max-width: 600px;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-  <iframe src="game.html"></iframe>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div id="info">Distance: 0 | Angle: 45° | Power: 50</div>
+    <div id="instructions">
+        <p><strong>Instructions:</strong></p>
+        <p>Up/Down Arrows: Adjust angle | Spacebar: Charge power (hold to increase) | R: Restart</p>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const infoDiv = document.getElementById('info');
+
+        // Game state
+        let turtle = {
+            x: 50,
+            y: canvas.height - 20,
+            vx: 0,
+            vy: 0,
+            radius: 10,
+            isFlying: false
+        };
+        let cannon = {
+            angle: 45, // degrees
+            power: 50, // 0 to 100
+            charging: false
+        };
+        let distance = 0;
+        let maxDistance = 0;
+        const gravity = 0.5;
+        const groundY = canvas.height - 20;
+        const bounce = 0.6; // Bounce elasticity
+        const friction = 0.8; // Horizontal friction on bounce
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                cannon.angle = Math.min(cannon.angle + 5, 90);
+            } else if (e.key === 'ArrowDown') {
+                cannon.angle = Math.max(cannon.angle - 5, 0);
+            } else if (e.key === ' ' && !turtle.isFlying) {
+                cannon.charging = true;
+            } else if (e.key === 'r' || e.key === 'R') {
+                resetGame();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === ' ' && cannon.charging && !turtle.isFlying) {
+                cannon.charging = false;
+                launchTurtle();
+            }
+        });
+
+        // Charge power over time
+        function chargePower() {
+            if (cannon.charging && cannon.power < 100) {
+                cannon.power += 1;
+            }
+        }
+
+        // Launch turtle
+        function launchTurtle() {
+            const angleRad = cannon.angle * Math.PI / 180;
+            const speed = cannon.power * 0.2; // Scale power to velocity
+            turtle.vx = Math.cos(angleRad) * speed;
+            turtle.vy = -Math.sin(angleRad) * speed;
+            turtle.isFlying = true;
+            cannon.power = 50; // Reset power
+        }
+
+        // Update turtle position
+        function updateTurtle() {
+            if (!turtle.isFlying) return;
+
+            // Apply gravity
+            turtle.vy += gravity;
+            turtle.x += turtle.vx;
+            turtle.y += turtle.vy;
+
+            // Check for ground collision
+            if (turtle.y > groundY - turtle.radius) {
+                turtle.y = groundY - turtle.radius;
+                turtle.vy = -turtle.vy * bounce;
+                turtle.vx *= friction;
+
+                // Stop if velocity is too low
+                if (Math.abs(turtle.vx) < 0.1 && Math.abs(turtle.vy) < 0.1) {
+                    turtle.isFlying = false;
+                    maxDistance = Math.max(maxDistance, Math.floor(turtle.x));
+                }
+            }
+
+            // Update distance
+            distance = Math.floor(turtle.x);
+        }
+
+        // Draw game
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.strokeStyle = 'green';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+
+            // Draw cannon
+            const cannonLength = 30;
+            const angleRad = cannon.angle * Math.PI / 180;
+            ctx.beginPath();
+            ctx.moveTo(50, groundY);
+            ctx.lineTo(
+                50 + Math.cos(angleRad) * cannonLength,
+                groundY - Math.sin(angleRad) * cannonLength
+            );
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 10;
+            ctx.stroke();
+
+            // Draw turtle
+            ctx.font = '20px Arial';
+            ctx.fillText('🐢', turtle.x - 10, turtle.y + 10);
+
+            // Update info
+            infoDiv.textContent = `Distance: ${maxDistance} | Angle: ${cannon.angle}° | Power: ${cannon.power}`;
+        }
+
+        // Reset game
+        function resetGame() {
+            turtle.x = 50;
+            turtle.y = groundY - turtle.radius;
+            turtle.vx = 0;
+            turtle.vy = 0;
+            turtle.isFlying = false;
+            cannon.angle = 45;
+            cannon.power = 50;
+            distance = 0;
+            maxDistance = 0;
+        }
+
+        // Game loop
+        function gameLoop() {
+            chargePower();
+            updateTurtle();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game
+        gameLoop();
+    </script>
 </body>
 </html>
