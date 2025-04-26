@@ -12,6 +12,18 @@ body {
     text-align: center;
 }
 
+h1 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
 button {
     padding: 10px 20px;
     font-size: 16px;
@@ -20,6 +32,7 @@ button {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
 button:hover {
